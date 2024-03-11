@@ -102,6 +102,7 @@ class MapViewPageState extends State<MapViewPage> {
     );
 
     setState(() {
+      print("staticMapImageUrl dsasad "+staticMapImageUrl);
       _previewImageUrl = staticMapImageUrl;
     });
   }

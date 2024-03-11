@@ -8,6 +8,7 @@ import 'package:launch_review/launch_review.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:rollcallapp/Helper/location_helper.dart';
+import 'package:rollcallapp/models/registerImage.dart';
 import 'package:rollcallapp/pages/leave.dart';
 import 'package:rollcallapp/pages/mapviewpage.dart';
 import 'package:rollcallapp/pages/ratingbar.dart';
@@ -29,14 +30,8 @@ class AttendancePage extends StatefulWidget {
   final int? superid;
   final String? emailid;
   final String? appType;
-  AttendancePage(
-      {Key? key,
-      this.username,
-      this.regid,
-      this.superid,
-      this.emailid,
-      this.appType})
-      : super(key: key);
+
+  AttendancePage({Key? key, this.username, this.regid, this.superid, this.emailid, this.appType}) : super(key: key);
 
   @override
   AttendancePageState createState() => new AttendancePageState();
@@ -53,6 +48,11 @@ class AttendancePageState extends State<AttendancePage> {
   String? _currentAddress;
   Position? _currentPosition;
   bool currentWidget = true;
+  final ImagePicker _picker = ImagePicker();
+  File? imageFile;
+  List images = [];
+  List imagesBase64 = [];
+  List imagesNames = [];
 
   @override
   void initState() {
@@ -63,8 +63,7 @@ class AttendancePageState extends State<AttendancePage> {
 
   openCamera(BuildContext context) async {
     final picker = ImagePicker();
-    final imageFile = await picker.pickImage(
-        source: ImageSource.camera, preferredCameraDevice: CameraDevice.front);
+    final imageFile = await picker.pickImage(source: ImageSource.camera, preferredCameraDevice: CameraDevice.front);
     setState(() {});
   }
 
@@ -79,24 +78,20 @@ class AttendancePageState extends State<AttendancePage> {
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text(
-              'Location services are disabled. Please enable the services')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location services are disabled. Please enable the services')));
       return false;
     }
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Location permissions are denied')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location permissions are denied')));
         return false;
       }
     }
     if (permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text(
-              'Location permissions are permanently denied, we cannot request permissions.')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Location permissions are permanently denied, we cannot request permissions.')));
       return false;
     }
     return true;
@@ -106,8 +101,7 @@ class AttendancePageState extends State<AttendancePage> {
     final hasPermission = await _handleLocationPermission();
 
     if (!hasPermission) return;
-    await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high)
-        .then((Position position) {
+    await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high).then((Position position) {
       setState(() => _currentPosition = position);
       _getAddressFromLatLng(_currentPosition!);
     }).catchError((e) {
@@ -116,13 +110,10 @@ class AttendancePageState extends State<AttendancePage> {
   }
 
   Future<void> _getAddressFromLatLng(Position position) async {
-    await placemarkFromCoordinates(
-            _currentPosition!.latitude, _currentPosition!.longitude)
-        .then((List<Placemark> placemarks) {
+    await placemarkFromCoordinates(_currentPosition!.latitude, _currentPosition!.longitude).then((List<Placemark> placemarks) {
       Placemark place = placemarks[0];
       setState(() {
-        _currentAddress =
-            '${place.street}, ${place.subLocality}, ${place.administrativeArea}, ${place.postalCode}';
+        _currentAddress = '${place.street}, ${place.subLocality}, ${place.administrativeArea}, ${place.postalCode}';
       });
     }).catchError((e) {
       debugPrint(e);
@@ -151,11 +142,7 @@ class AttendancePageState extends State<AttendancePage> {
   }
 
   Future<bool> getNextPunchType(int superid, int regid) async {
-    final String _url = Constants.apiUrl +
-        "Employee/GetNextPunchType/" +
-        superid.toString() +
-        "/" +
-        regid.toString();
+    final String _url = Constants.apiUrl + "Employee/GetNextPunchType/" + superid.toString() + "/" + regid.toString();
     final response = await http.get(Uri.parse(_url));
     bool isInPunch = response.body.toString().toLowerCase() == 'true';
 
@@ -163,30 +150,17 @@ class AttendancePageState extends State<AttendancePage> {
   }
 
   Future<bool> processAttendance(int superid, int regid) async {
-    final String _url = Constants.apiUrl +
-        "Employee/GetProcessAttendance/" +
-        superid.toString() +
-        "/" +
-        regid.toString();
+    final String _url = Constants.apiUrl + "Employee/GetProcessAttendance/" + superid.toString() + "/" + regid.toString();
     final response = await http.get(Uri.parse(_url));
     bool isInPunch = response.body.toString().toLowerCase() == 'true';
 
     return isInPunch;
   }
 
-  Future<PunchResultModel> postAttendance(String superid, String regid,
-      String lat, String long, String address, String notes) async {
+  Future<PunchResultModel> postAttendance(String superid, String regid, String lat, String long, String address, String notes) async {
     DateTime dt = new DateTime.now();
-    String dot = dt.year.toString() +
-        "-" +
-        dt.month.toString() +
-        "-" +
-        dt.day.toString();
-    String time = dt.hour.toString() +
-        ":" +
-        dt.minute.toString() +
-        ":" +
-        dt.second.toString();
+    String dot = dt.year.toString() + "-" + dt.month.toString() + "-" + dt.day.toString();
+    String time = dt.hour.toString() + ":" + dt.minute.toString() + ":" + dt.second.toString();
 
     final String _url = Constants.apiUrl + 'Employee/PostGpsPunch';
     final punch = {
@@ -205,6 +179,56 @@ class AttendancePageState extends State<AttendancePage> {
       responseJson = json.decode(response.body);
     } catch (e) {}
     return new PunchResultModel.fromJson(responseJson);
+  }
+
+  Future<RegisterImageModel> postResister(String superid, String personid, String imagesBase64) async {
+    final String _url = Constants.apiUrl + 'personRegistration_base64';
+    final punch = {
+      "superid": superid,
+      "personid": personid,
+      "image_data_base64": imagesBase64,
+    };
+    dynamic responseJson = {};
+    try {
+      final response = await http.post(Uri.parse(_url), body: punch);
+
+      responseJson = json.decode(response.body);
+    } catch (e) {}
+    return new RegisterImageModel.fromJson(responseJson);
+  }
+
+  capturedCamImages() async {
+    XFile? pickedFile = await _picker.pickImage(source: ImageSource.camera, imageQuality: 50);
+    if (pickedFile != null) {
+      setState(() {
+        imageFile = File(pickedFile.path);
+      });
+    }
+    try {
+      String base64String = convertImageFileToBase64String(imageFile!);
+      debugPrint(imagesNames.length.toString());
+      setState(() {
+        images.add(imageFile!);
+        imagesNames.add(pickedFile!.name);
+        imagesBase64.add(base64String);
+        setState(() {
+          images;
+        });
+      });
+      if(imagesBase64.isNotEmpty){
+        onRegister();
+      }
+    } catch (e) {
+      // showError(e);
+    }
+  }
+
+  String convertImageFileToBase64String(File imageFile) {
+    String base64Image = "";
+    Uint8List? bytesCond;
+    bytesCond = File(imageFile.path).readAsBytesSync();
+    base64Image = base64Encode(bytesCond);
+    return base64Image;
   }
 
   Future<Null> _userDialog(String messagetext, String actiontext) async {
@@ -249,13 +273,9 @@ class AttendancePageState extends State<AttendancePage> {
         if (_currentPosition != null) {
           address = _currentAddress;
         }
-        Future<PunchResultModel> punchFuture = postAttendance(
-            widget.superid.toString(),
-            widget.regid.toString(),
-            _latitude,
-            _longitude,
-            address!,
-            _notesctrl.text);
+
+        Future<PunchResultModel> punchFuture =
+            postAttendance(widget.superid.toString(), widget.regid.toString(), _latitude, _longitude, address!, _notesctrl.text);
 
         punchFuture.then((punchmap) {
           Future<Null> dialogFuture;
@@ -266,8 +286,7 @@ class AttendancePageState extends State<AttendancePage> {
               _notesctrl.text = "";
               punchtype = "loading...";
               setNextPunchType(widget.superid!, widget.regid!);
-              dialogFuture = _userDialog(
-                  'Attendance Posted Successfully From ' + address!, 'Ok');
+              dialogFuture = _userDialog('Attendance Posted Successfully From ' + address!, 'Ok');
             } else {
               dialogFuture = _userDialog(punchmap.errorMessage, 'Retry');
             }
@@ -288,10 +307,7 @@ class AttendancePageState extends State<AttendancePage> {
           });
         });
       } else {
-        _userDialog(
-                'Location Not able to get. Make sure device GPS is on. Please relogin and try again.',
-                'Ok')
-            .then((temp) {
+        _userDialog('Location Not able to get. Make sure device GPS is on. Please relogin and try again.', 'Ok').then((temp) {
           setState(() {
             isLoading = false;
           });
@@ -302,6 +318,26 @@ class AttendancePageState extends State<AttendancePage> {
         isLoading = false;
       });
     }
+  }
+
+  onRegister() {
+    Future<RegisterImageModel> regFuture = postResister(
+      widget.superid.toString(),
+      widget.regid.toString(),
+      imagesBase64[0],
+    );
+    regFuture.then((value) {
+      Future<Null> dialogFuture;
+      if (value == null) {
+        dialogFuture = _userDialog('Error Occured!', 'Retry');
+      } else {
+        if (value.status) {
+          dialogFuture = _userDialog('Registered  Successfully From ' + address!, 'Ok');
+        } else {
+          dialogFuture = _userDialog(value.message, 'Retry');
+        }
+      }
+    });
   }
 
   @override
@@ -338,11 +374,8 @@ class AttendancePageState extends State<AttendancePage> {
                 onTap: () {
                   Navigator.of(context).push(
                     new MaterialPageRoute(
-                      builder: (BuildContext context) => new MapViewPage(
-                          username: widget.username!,
-                          superid: widget.superid!,
-                          regid: widget.regid!,
-                          emailid: widget.emailid!),
+                      builder: (BuildContext context) =>
+                          new MapViewPage(username: widget.username!, superid: widget.superid!, regid: widget.regid!, emailid: widget.emailid!),
                     ),
                   );
                 },
@@ -355,13 +388,8 @@ class AttendancePageState extends State<AttendancePage> {
       );
     }
 
-    Future<List<AttendanceModel>> getAttendance(
-        int regid, String superid) async {
-      final String url = Constants.apiUrl +
-          "Employee/getempattendance?SuperId=" +
-          superid +
-          "&RegistrationId=" +
-          regid.toString();
+    Future<List<AttendanceModel>> getAttendance(int regid, String superid) async {
+      final String url = Constants.apiUrl + "Employee/getempattendance?SuperId=" + superid + "&RegistrationId=" + regid.toString();
       //print(url);
       final response = await http.get(Uri.parse(url));
       final responsejson = json.decode(response.body);
@@ -376,7 +404,9 @@ class AttendancePageState extends State<AttendancePage> {
       appBar: new AppBar(
         backgroundColor: Colors.indigo,
         title: new Text('Attendance'),
-        actions: <Widget>[],
+        actions: <Widget>[IconButton(onPressed: () {
+          capturedCamImages();
+        }, icon: Icon(Icons.person_add_alt_1))],
       ),
       drawer: new Drawer(
         child: new ListView(
@@ -405,9 +435,7 @@ class AttendancePageState extends State<AttendancePage> {
                   ),
                 ),
                 decoration: new BoxDecoration(
-                  image: new DecorationImage(
-                      image: new AssetImage('images/backgroundimage.png'),
-                      fit: BoxFit.fill),
+                  image: new DecorationImage(image: new AssetImage('images/backgroundimage.png'), fit: BoxFit.fill),
                 ),
               ),
               onTap: () {
@@ -435,10 +463,7 @@ class AttendancePageState extends State<AttendancePage> {
                     Navigator.of(context).pop();
                     Navigator.of(context).push(new MaterialPageRoute(
                         builder: (BuildContext context) => new LeaveSummaryPage(
-                            username: widget.username!,
-                            superid: widget.superid!,
-                            regid: widget.regid!,
-                            emailid: widget.emailid!)));
+                            username: widget.username!, superid: widget.superid!, regid: widget.regid!, emailid: widget.emailid!)));
                   },
                 ),
               ],
@@ -508,14 +533,11 @@ class AttendancePageState extends State<AttendancePage> {
               title: new Text("Log Out"),
               trailing: new Icon(Icons.exit_to_app),
               onTap: () async {
-                final SharedPreferences sharedPreferences =
-                    await SharedPreferences.getInstance();
+                final SharedPreferences sharedPreferences = await SharedPreferences.getInstance();
                 sharedPreferences.remove('userId');
                 Navigator.of(context).pop();
-                Navigator.of(context).pushAndRemoveUntil(
-                    new MaterialPageRoute(
-                        builder: (BuildContext context) => new LoginPage()),
-                    (Route<dynamic> route) => false);
+                Navigator.of(context)
+                    .pushAndRemoveUntil(new MaterialPageRoute(builder: (BuildContext context) => new LoginPage()), (Route<dynamic> route) => false);
               },
             ),
             new Container(
@@ -536,8 +558,7 @@ class AttendancePageState extends State<AttendancePage> {
                     children: <Widget>[
                       new Text(
                         'Welcome ' + widget.username!,
-                        style:
-                            new TextStyle(fontSize: 25.0, color: Colors.grey),
+                        style: new TextStyle(fontSize: 25.0, color: Colors.grey),
                       ),
                       new Padding(
                         padding: const EdgeInsets.only(top: 20.0),
@@ -552,8 +573,7 @@ class AttendancePageState extends State<AttendancePage> {
                             splashColor: Colors.black,
                             height: 40.0,
                             minWidth: 150.0,
-                            child: new Text(punchtype,
-                                style: new TextStyle(fontSize: 15.0)),
+                            child: new Text(punchtype, style: new TextStyle(fontSize: 15.0)),
                             onPressed: onPunchClicked,
                           ),
                         ],
@@ -564,8 +584,7 @@ class AttendancePageState extends State<AttendancePage> {
                       Text(
                         'Last Punches',
                         textAlign: TextAlign.left,
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                       Card(
                         child: SizedBox(
@@ -573,16 +592,13 @@ class AttendancePageState extends State<AttendancePage> {
                           height: 400,
                           child: Center(
                             child: new FutureBuilder<List<AttendanceModel>>(
-                              future: getAttendance(
-                                  widget.regid!, widget.superid.toString()),
+                              future: getAttendance(widget.regid!, widget.superid.toString()),
                               builder: (context, snapshot) {
                                 if (snapshot.hasData) {
                                   return new ListView.builder(
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
+                                    physics: const NeverScrollableScrollPhysics(),
                                     itemCount: snapshot.data!.length,
-                                    itemBuilder:
-                                        (BuildContext context, int index) {
+                                    itemBuilder: (BuildContext context, int index) {
                                       return new Card(
                                         child: new Container(
                                           padding: const EdgeInsets.all(15.0),
@@ -590,60 +606,31 @@ class AttendancePageState extends State<AttendancePage> {
                                             children: <Widget>[
                                               new CircleAvatar(
                                                 backgroundColor: Colors.indigo,
-                                                child: new Text(snapshot.data!
-                                                    .elementAt(index)
-                                                    .dateOfTransaction
-                                                    !.day
-                                                    .toString()),
+                                                child: new Text(snapshot.data!.elementAt(index).dateOfTransaction!.day.toString()),
                                               ),
                                               new Padding(
-                                                padding: const EdgeInsets.only(
-                                                    right: 15.0),
+                                                padding: const EdgeInsets.only(right: 15.0),
                                               ),
                                               new Column(
                                                 children: <Widget>[
                                                   new Text(
-                                                    snapshot.data!
-                                                            .elementAt(index)
-                                                            .dateOfTransaction
-                                                            !.day
-                                                            .toString() +
+                                                    snapshot.data!.elementAt(index).dateOfTransaction!.day.toString() +
                                                         "-" +
-                                                        snapshot.data!
-                                                            .elementAt(index)
-                                                            .dateOfTransaction
-                                                            !.month
-                                                            .toString() +
+                                                        snapshot.data!.elementAt(index).dateOfTransaction!.month.toString() +
                                                         "-" +
-                                                        snapshot.data!
-                                                            .elementAt(index)
-                                                            .dateOfTransaction
-                                                            !.year
-                                                            .toString(),
+                                                        snapshot.data!.elementAt(index).dateOfTransaction!.year.toString(),
                                                     style: new TextStyle(
                                                       fontSize: 20.0,
                                                     ),
                                                   ),
-                                                  new Padding(
-                                                      padding:
-                                                          const EdgeInsets.only(
-                                                              bottom: 5.0)),
+                                                  new Padding(padding: const EdgeInsets.only(bottom: 5.0)),
                                                   new Row(
                                                     children: <Widget>[
-                                                      new Text('In: ' +
-                                                          snapshot.data!
-                                                              .elementAt(index)
-                                                              .inTime.toString()),
+                                                      new Text('In: ' + snapshot.data!.elementAt(index).inTime.toString()),
                                                       new Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                    .only(
-                                                                right: 5.0),
+                                                        padding: const EdgeInsets.only(right: 5.0),
                                                       ),
-                                                      new Text('Out: ' +
-                                                          snapshot.data!
-                                                              .elementAt(index)
-                                                              .outTime)
+                                                      new Text('Out: ' + snapshot.data!.elementAt(index).outTime)
                                                     ],
                                                   )
                                                 ],
