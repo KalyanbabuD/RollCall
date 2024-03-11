@@ -197,7 +197,24 @@ class AttendancePageState extends State<AttendancePage> {
     return new RegisterImageModel.fromJson(responseJson);
   }
 
+  Future<RegisterImageModel> verify(String superid, String personid, String imagesBase64) async {
+    final String _url = Constants.apiUrl + 'personVeification_base64';
+    final punch = {
+      "superid": superid,
+      "personid": personid,
+      "image_data_base64": imagesBase64,
+    };
+    dynamic responseJson = {};
+    try {
+      final response = await http.post(Uri.parse(_url), body: punch);
+
+      responseJson = json.decode(response.body);
+    } catch (e) {}
+    return new RegisterImageModel.fromJson(responseJson);
+  }
+
   capturedCamImages() async {
+    imagesBase64.clear();
     XFile? pickedFile = await _picker.pickImage(source: ImageSource.camera, imageQuality: 50);
     if (pickedFile != null) {
       setState(() {
@@ -215,7 +232,34 @@ class AttendancePageState extends State<AttendancePage> {
           images;
         });
       });
-      if(imagesBase64.isNotEmpty){
+      if (imagesBase64.isNotEmpty) {
+        onRegister();
+      }
+    } catch (e) {
+      // showError(e);
+    }
+  }
+
+  capturedCamImagesInPunch() async {
+    imagesBase64.clear();
+    XFile? pickedFile = await _picker.pickImage(source: ImageSource.camera, imageQuality: 50);
+    if (pickedFile != null) {
+      setState(() {
+        imageFile = File(pickedFile.path);
+      });
+    }
+    try {
+      String base64String = convertImageFileToBase64String(imageFile!);
+      debugPrint(imagesNames.length.toString());
+      setState(() {
+        images.add(imageFile!);
+        imagesNames.add(pickedFile!.name);
+        imagesBase64.add(base64String);
+        setState(() {
+          images;
+        });
+      });
+      if (imagesBase64.isNotEmpty) {
         onRegister();
       }
     } catch (e) {
@@ -273,38 +317,55 @@ class AttendancePageState extends State<AttendancePage> {
         if (_currentPosition != null) {
           address = _currentAddress;
         }
-
-        Future<PunchResultModel> punchFuture =
-            postAttendance(widget.superid.toString(), widget.regid.toString(), _latitude, _longitude, address!, _notesctrl.text);
-
-        punchFuture.then((punchmap) {
+        Future<RegisterImageModel> regFuture = verify(
+          widget.superid.toString(),
+          widget.regid.toString(),
+          imagesBase64[0],
+        );
+        regFuture.then((value) {
           Future<Null> dialogFuture;
-          if (punchmap == null) {
+          if (value == null) {
             dialogFuture = _userDialog('Error Occured!', 'Retry');
           } else {
-            if (punchmap.result) {
-              _notesctrl.text = "";
-              punchtype = "loading...";
-              setNextPunchType(widget.superid!, widget.regid!);
-              dialogFuture = _userDialog('Attendance Posted Successfully From ' + address!, 'Ok');
+            if (value.status) {
+              dialogFuture = _userDialog('Registered  Successfully From ' + address!, 'Ok');
+
+              Future<PunchResultModel> punchFuture =
+                  postAttendance(widget.superid.toString(), widget.regid.toString(), _latitude, _longitude, address!, _notesctrl.text);
+
+              punchFuture.then((punchmap) {
+                Future<Null> dialogFuture;
+                if (punchmap == null) {
+                  dialogFuture = _userDialog('Error Occured!', 'Retry');
+                } else {
+                  if (punchmap.result) {
+                    _notesctrl.text = "";
+                    punchtype = "loading...";
+                    setNextPunchType(widget.superid!, widget.regid!);
+                    dialogFuture = _userDialog('Attendance Posted Successfully From ' + address!, 'Ok');
+                  } else {
+                    dialogFuture = _userDialog(punchmap.errorMessage, 'Retry');
+                  }
+                }
+
+                dialogFuture.then((temp) {
+                  setState(() {
+                    isLoading = false;
+                  });
+                });
+              });
+
+              punchFuture.catchError(() {
+                _userDialog('Unable to post attendance', 'Retry').then((temp) {
+                  setState(() {
+                    isLoading = false;
+                  });
+                });
+              });
             } else {
-              dialogFuture = _userDialog(punchmap.errorMessage, 'Retry');
+              dialogFuture = _userDialog(value.message, 'Retry');
             }
           }
-
-          dialogFuture.then((temp) {
-            setState(() {
-              isLoading = false;
-            });
-          });
-        });
-
-        punchFuture.catchError(() {
-          _userDialog('Unable to post attendance', 'Retry').then((temp) {
-            setState(() {
-              isLoading = false;
-            });
-          });
         });
       } else {
         _userDialog('Location Not able to get. Make sure device GPS is on. Please relogin and try again.', 'Ok').then((temp) {
@@ -404,9 +465,13 @@ class AttendancePageState extends State<AttendancePage> {
       appBar: new AppBar(
         backgroundColor: Colors.indigo,
         title: new Text('Attendance'),
-        actions: <Widget>[IconButton(onPressed: () {
-          capturedCamImages();
-        }, icon: Icon(Icons.person_add_alt_1))],
+        actions: <Widget>[
+          IconButton(
+              onPressed: () {
+                capturedCamImages();
+              },
+              icon: Icon(Icons.person_add_alt_1))
+        ],
       ),
       drawer: new Drawer(
         child: new ListView(
