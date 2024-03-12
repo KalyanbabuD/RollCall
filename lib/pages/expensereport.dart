@@ -20,7 +20,7 @@ class _ExpenseReportState extends State<ExpenseReport> {
   void loadRegExpense() {
     this
         .rest
-        .getRegExpenses(widget.userdata.superId, widget.userdata.registrationId)
+        .getRegExpenses(widget.userdata.superId!, widget.userdata.registrationId!)
         .then((data) {
       setState(() {
         this._regexpense = data;

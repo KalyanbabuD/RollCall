@@ -29,6 +29,7 @@ class MapViewPage extends StatefulWidget {
   final int? superid;
   final String? emailid;
   final String? appType;
+
   @override
   MapViewPageState createState() => new MapViewPageState();
 }
@@ -36,16 +37,16 @@ class MapViewPage extends StatefulWidget {
 class MapViewPageState extends State<MapViewPage> {
   bool isLoading = false;
   File? cameraFile;
-  String _previewImageUrl="";
+  String _previewImageUrl = "";
 
-  String address="";
+  String address = "";
   String punchtype = 'loading..';
   TextEditingController _notesctrl = new TextEditingController();
-  String _currentAddress="";
+  String _currentAddress = "";
   Position? _currentPosition;
   List imagesBase64 = [];
 
-  String error="";
+  String error = "";
   List<Widget> widgets = [];
 
   bool currentWidget = true;
@@ -63,24 +64,20 @@ class MapViewPageState extends State<MapViewPage> {
     LocationPermission permission;
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text(
-              'Location services are disabled. Please enable the services')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location services are disabled. Please enable the services')));
       return false;
     }
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Location permissions are denied')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location permissions are denied')));
         return false;
       }
     }
     if (permission == LocationPermission.deniedForever) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text(
-              'Location permissions are permanently denied, we cannot request permissions.')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Location permissions are permanently denied, we cannot request permissions.')));
       return false;
     }
     return true;
@@ -90,8 +87,7 @@ class MapViewPageState extends State<MapViewPage> {
     final hasPermission = await _handleLocationPermission();
 
     if (!hasPermission) return;
-    await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high)
-        .then((Position position) {
+    await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high).then((Position position) {
       setState(() => _currentPosition = position);
       _getAddressFromLatLng(_currentPosition!);
     }).catchError((e) {
@@ -104,19 +100,16 @@ class MapViewPageState extends State<MapViewPage> {
     );
 
     setState(() {
-      print("staticMapImageUrl dsasad "+staticMapImageUrl);
+      print("staticMapImageUrl dsasad " + staticMapImageUrl);
       _previewImageUrl = staticMapImageUrl;
     });
   }
 
   Future<void> _getAddressFromLatLng(Position position) async {
-    await placemarkFromCoordinates(
-            _currentPosition!.latitude, _currentPosition!.longitude)
-        .then((List<Placemark> placemarks) {
+    await placemarkFromCoordinates(_currentPosition!.latitude, _currentPosition!.longitude).then((List<Placemark> placemarks) {
       Placemark place = placemarks[0];
       setState(() {
-        _currentAddress =
-            '${place.street}, ${place.subLocality}, ${place.administrativeArea}, ${place.postalCode}';
+        _currentAddress = '${place.street}, ${place.subLocality}, ${place.administrativeArea}, ${place.postalCode}';
       });
     }).catchError((e) {
       debugPrint(e);
@@ -125,8 +118,7 @@ class MapViewPageState extends State<MapViewPage> {
 
   openCamera(BuildContext context) async {
     final picker = ImagePicker();
-    final imageFile = await picker.pickImage(
-        source: ImageSource.camera, preferredCameraDevice: CameraDevice.front);
+    final imageFile = await picker.pickImage(source: ImageSource.camera, preferredCameraDevice: CameraDevice.front);
     setState(() {});
   }
 
@@ -157,11 +149,7 @@ class MapViewPageState extends State<MapViewPage> {
   }
 
   Future<bool> getNextPunchType(int superid, int regid) async {
-    final String _url = Constants.apiUrl +
-        "Employee/GetNextPunchType/" +
-        superid.toString() +
-        "/" +
-        regid.toString();
+    final String _url = Constants.apiUrl + "Employee/GetNextPunchType/" + superid.toString() + "/" + regid.toString();
     final response = await http.get(Uri.parse(_url));
     bool isInPunch = response.body.toString().toLowerCase() == 'true';
 
@@ -169,30 +157,17 @@ class MapViewPageState extends State<MapViewPage> {
   }
 
   Future<bool> processAttendance(int superid, int regid) async {
-    final String _url = Constants.apiUrl +
-        "Employee/GetProcessAttendance/" +
-        superid.toString() +
-        "/" +
-        regid.toString();
+    final String _url = Constants.apiUrl + "Employee/GetProcessAttendance/" + superid.toString() + "/" + regid.toString();
     final response = await http.get(Uri.parse(_url));
     bool isInPunch = response.body.toString().toLowerCase() == 'true';
 
     return isInPunch;
   }
 
-  Future<PunchResultModel> postAttendance(String superid, String regid,
-      String lat, String long, String address, String notes) async {
+  Future<PunchResultModel> postAttendance(String superid, String regid, String lat, String long, String address, String notes) async {
     DateTime dt = new DateTime.now();
-    String dot = dt.year.toString() +
-        "-" +
-        dt.month.toString() +
-        "-" +
-        dt.day.toString();
-    String time = dt.hour.toString() +
-        ":" +
-        dt.minute.toString() +
-        ":" +
-        dt.second.toString();
+    String dot = dt.year.toString() + "-" + dt.month.toString() + "-" + dt.day.toString();
+    String time = dt.hour.toString() + ":" + dt.minute.toString() + ":" + dt.second.toString();
 
     final String _url = Constants.apiUrl + 'Employee/PostGpsPunch';
     final punch = {
@@ -206,8 +181,9 @@ class MapViewPageState extends State<MapViewPage> {
     };
     dynamic responseJson = {};
     try {
+      print("kalyan" + punch.toString());
       final response = await http.post(Uri.parse(_url), body: punch);
-
+      print("kalyan" + response.body.toString());
       responseJson = json.decode(response.body);
     } catch (e) {}
     return new PunchResultModel.fromJson(responseJson);
@@ -262,73 +238,68 @@ class MapViewPageState extends State<MapViewPage> {
             dialogFuture = _userDialog('Error Occured!', 'Retry');
           } else {
             if (value.data["Status"]) {
-        Future<PunchResultModel> punchFuture = postAttendance(
-            widget.superid.toString(),
-            widget.regid.toString(),
-            _latitude,
-            _longitude,
-            address,
-            _notesctrl.text);
+              Future<PunchResultModel> punchFuture =
+                  postAttendance(widget.superid.toString(), widget.regid.toString(), _latitude, _longitude, address, _notesctrl.text);
 
-        punchFuture.then((punchmap) {
-          Future<Null> dialogFuture;
-          if (punchmap == null) {
-            dialogFuture = _userDialog('Error Occured!', 'Retry');
-          } else {
-            if (punchmap.result) {
-              _notesctrl.text = "";
-              punchtype = "loading...";
-              setNextPunchType(widget.superid!, widget.regid!);
-              dialogFuture = _userDialog(
-                  'Attendance Posted Successfully From ' + address, 'Ok');
+              punchFuture.then((punchmap) {
+                Future<Null> dialogFuture;
+                if (punchmap == null) {
+                  dialogFuture = _userDialog('Error Occured!', 'Retry');
+                } else {
+                  if (punchmap.result!) {
+                    _notesctrl.text = "";
+                    punchtype = "loading...";
+                    setNextPunchType(widget.superid!, widget.regid!);
+                    dialogFuture = _userDialog('Attendance Posted Successfully From ' + address, 'Ok');
+                  } else {
+                    dialogFuture = _userDialog(punchmap.errorMessage!, 'Retry');
+                  }
+                }
+
+                dialogFuture.then((temp) {
+                  setState(() {
+                    isLoading = false;
+                  });
+                });
+              });
+
+              punchFuture.catchError(() {
+                _userDialog('Unable to post attendance', 'Retry').then((temp) {
+                  setState(() {
+                    isLoading = false;
+                  });
+                });
+              });
             } else {
-              dialogFuture = _userDialog(punchmap.errorMessage, 'Retry');
+              _userDialog('Location Not able to get. Make sure device GPS is on. Please relogin and try again.', 'Ok').then((temp) {
+                setState(() {
+                  isLoading = false;
+                });
+              });
             }
           }
-
-          dialogFuture.then((temp) {
-            setState(() {
-              isLoading = false;
-            });
-          });
-        });
-
-        punchFuture.catchError(() {
-          _userDialog('Unable to post attendance', 'Retry').then((temp) {
-            setState(() {
-              isLoading = false;
-            });
-          });
-        });
-      } else {
-        _userDialog(
-                'Location Not able to get. Make sure device GPS is on. Please relogin and try again.',
-                'Ok')
-            .then((temp) {
-          setState(() {
-            isLoading = false;
-          });
         });
       }
-    }});}} catch (e) {
+    } catch (e) {
       setState(() {
         isLoading = false;
       });
     }
   }
 
-            Future verify(String superid, String personid, String imagesBase64) async {
-          final String _url = Constants.imgApiUrl + 'personVeification_base64';
-          final punch = {
-            "superid": superid,
-            "personid": personid,
-            "image_data_base64": imagesBase64,
-          };
-          final response = await Dio().post(_url, data: punch);
-          print("url"+response.statusCode.toString());
-          print("response"+response.data.toString());
-          return response;
-        }
+  Future verify(String superid, String personid, String imagesBase64) async {
+    final String _url = Constants.imgApiUrl + 'personVeification_base64';
+    final punch = {
+      "superid": superid,
+      "personid": personid,
+      "image_data_base64": imagesBase64,
+    };
+    final response = await Dio().post(_url, data: punch);
+    print("url" + response.statusCode.toString());
+    print("response" + response.data.toString());
+    return response;
+  }
+
   @override
   Widget build(BuildContext context) {
     Widget buildLeaveSubmissionMenu() {
@@ -385,8 +356,7 @@ class MapViewPageState extends State<MapViewPage> {
                     children: <Widget>[
                       new Text(
                         'Welcome ' + widget.username!,
-                        style:
-                            new TextStyle(fontSize: 25.0, color: Colors.grey),
+                        style: new TextStyle(fontSize: 25.0, color: Colors.grey),
                       ),
                       new Padding(
                         padding: const EdgeInsets.only(top: 20.0),
@@ -441,18 +411,13 @@ class MapViewPageState extends State<MapViewPage> {
                             splashColor: Colors.black,
                             height: 40.0,
                             minWidth: 150.0,
-                            child: new Text(punchtype,
-                                style: new TextStyle(fontSize: 15.0)),
+                            child: new Text(punchtype, style: new TextStyle(fontSize: 15.0)),
                             onPressed: (() {
                               onPunchClicked();
                               Navigator.of(context).push(
                                 new MaterialPageRoute(
-                                  builder: (BuildContext context) =>
-                                      new AttendancePage(
-                                          username: widget.username,
-                                          superid: widget.superid,
-                                          regid: widget.regid,
-                                          emailid: widget.emailid),
+                                  builder: (BuildContext context) => new AttendancePage(
+                                      username: widget.username, superid: widget.superid, regid: widget.regid, emailid: widget.emailid),
                                 ),
                               );
                             }),

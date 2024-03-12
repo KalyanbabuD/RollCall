@@ -204,8 +204,8 @@ class _MenuListViewState extends State<MenuListView> {
       children: <Widget>[
 //            header
         new UserAccountsDrawerHeader(
-          accountName: Text(this.userModel!.userName),
-          accountEmail: Text(this.userModel!.emailId),
+          accountName: Text(this.userModel!.userName!),
+          accountEmail: Text(this.userModel!.emailId!),
           currentAccountPicture: GestureDetector(
             child: new CircleAvatar(
               backgroundColor: Colors.grey,

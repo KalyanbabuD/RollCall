@@ -61,7 +61,7 @@ class _ExpensePageState extends State<ExpensePage> {
   }
 
   void loadexptypes(){
-    rest.getExpensesType(widget.userdata!.superId).then((value){
+    rest.getExpensesType(widget.userdata!.superId!).then((value){
       if(value!=null){
         setState(() {
           this.exptype = value;
