@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -42,6 +43,8 @@ class MapViewPageState extends State<MapViewPage> {
   TextEditingController _notesctrl = new TextEditingController();
   String _currentAddress="";
   Position? _currentPosition;
+  List imagesBase64 = [];
+
   String error="";
   List<Widget> widgets = [];
 
@@ -248,6 +251,17 @@ class MapViewPageState extends State<MapViewPage> {
         if (_currentPosition != null) {
           address = _currentAddress;
         }
+        Future regFuture = verify(
+          widget.superid.toString(),
+          widget.regid.toString(),
+          imagesBase64[0],
+        );
+        regFuture.then((value) {
+          Future<Null> dialogFuture;
+          if (value == null) {
+            dialogFuture = _userDialog('Error Occured!', 'Retry');
+          } else {
+            if (value.data["Status"]) {
         Future<PunchResultModel> punchFuture = postAttendance(
             widget.superid.toString(),
             widget.regid.toString(),
@@ -296,13 +310,25 @@ class MapViewPageState extends State<MapViewPage> {
           });
         });
       }
-    } catch (e) {
+    }});}} catch (e) {
       setState(() {
         isLoading = false;
       });
     }
   }
 
+            Future verify(String superid, String personid, String imagesBase64) async {
+          final String _url = Constants.imgApiUrl + 'personVeification_base64';
+          final punch = {
+            "superid": superid,
+            "personid": personid,
+            "image_data_base64": imagesBase64,
+          };
+          final response = await Dio().post(_url, data: punch);
+          print("url"+response.statusCode.toString());
+          print("response"+response.data.toString());
+          return response;
+        }
   @override
   Widget build(BuildContext context) {
     Widget buildLeaveSubmissionMenu() {

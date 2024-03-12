@@ -14,7 +14,7 @@ class RegisterImageModel {
   factory RegisterImageModel.fromJson(Map<String, dynamic> json) {
     return new RegisterImageModel(
         status: json['Status'],
-        message: json['message'],
+        message: json['Message'],
         superid: json['superid'],
         personid: json['personid']);
   }
