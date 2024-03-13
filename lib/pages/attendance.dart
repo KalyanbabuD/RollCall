@@ -184,7 +184,7 @@ class AttendancePageState extends State<AttendancePage> {
 
   Future postResister(String superid, String personid, String imagesBase64) async {
     setState(() {
-      isLoading = false;
+      isLoading = true;
     });
     final String _url = Constants.imgApiUrl + 'personRegistration_base64';
     final punch = {
@@ -408,6 +408,9 @@ class AttendancePageState extends State<AttendancePage> {
         } else {
           if (value.data["Status"]) {
             dialogFuture = _userDialog('Registered  Successfully From ', 'Ok');
+            setState(() {
+              isLoading=false;
+            });
           } else {
             dialogFuture = _userDialog(value.message, 'Retry');
           }

@@ -44,7 +44,11 @@ class MapViewPageState extends State<MapViewPage> {
   TextEditingController _notesctrl = new TextEditingController();
   String _currentAddress = "";
   Position? _currentPosition;
+  final ImagePicker _picker = ImagePicker();
+  File? imageFile;
+  List images = [];
   List imagesBase64 = [];
+  List imagesNames = [];
 
   String error = "";
   List<Widget> widgets = [];
@@ -207,16 +211,60 @@ class MapViewPageState extends State<MapViewPage> {
                   child: new Text(actiontext),
                   onPressed: () {
                     Navigator.of(context).pop();
+                    Navigator.of(context).push(
+                      new MaterialPageRoute(
+                        builder: (BuildContext context) => new AttendancePage(
+                            username: widget.username, superid: widget.superid, regid: widget.regid, emailid: widget.emailid),
+                      ),
+                    );
                   },
                 ),
               ],
             ));
   }
 
-  void onPunchClicked() async {
+  capturedCamImagesInPunch() async {
     setState(() {
-      isLoading = true;
+      imagesBase64.clear();
     });
+    XFile? pickedFile = await _picker.pickImage(source: ImageSource.camera, imageQuality: 50);
+    if (pickedFile != null) {
+      setState(() {
+        imageFile = File(pickedFile.path);
+      });
+    }
+    try {
+      String base64String = convertImageFileToBase64String(imageFile!);
+      debugPrint(imagesNames.length.toString());
+      setState(() {
+        images.add(imageFile!);
+        imagesNames.add(pickedFile!.name);
+        imagesBase64.add(base64String);
+        setState(() {
+          images;
+        });
+      });
+      if (imagesBase64.isNotEmpty) {
+        onPunchClicked();
+      }
+    } catch (e) {
+      // showError(e);
+    }
+  }
+  String convertImageFileToBase64String(File imageFile) {
+    String base64Image = "";
+    Uint8List? bytesCond;
+    bytesCond = File(imageFile.path).readAsBytesSync();
+    base64Image = base64Encode(bytesCond);
+    return base64Image;
+  }
+
+  void onPunchClicked() async {
+    setState(
+          () {
+        isLoading = true;
+      },
+    );
 
     try {
       if (_currentPosition != null) {
@@ -224,6 +272,7 @@ class MapViewPageState extends State<MapViewPage> {
         String _longitude = "";
         _latitude = _currentPosition!.latitude.toString();
         _longitude = _currentPosition!.longitude.toString();
+
         if (_currentPosition != null) {
           address = _currentAddress;
         }
@@ -239,8 +288,7 @@ class MapViewPageState extends State<MapViewPage> {
           } else {
             if (value.data["Status"]) {
               Future<PunchResultModel> punchFuture =
-                  postAttendance(widget.superid.toString(), widget.regid.toString(), _latitude, _longitude, address, _notesctrl.text);
-
+              postAttendance(widget.superid.toString(), widget.regid.toString(), _latitude, _longitude, address!, _notesctrl.text);
               punchFuture.then((punchmap) {
                 Future<Null> dialogFuture;
                 if (punchmap == null) {
@@ -250,7 +298,8 @@ class MapViewPageState extends State<MapViewPage> {
                     _notesctrl.text = "";
                     punchtype = "loading...";
                     setNextPunchType(widget.superid!, widget.regid!);
-                    dialogFuture = _userDialog('Attendance Posted Successfully From ' + address, 'Ok');
+                    dialogFuture = _userDialog('Attendance Posted Successfully From ' + address!, 'Ok');
+
                   } else {
                     dialogFuture = _userDialog(punchmap.errorMessage!, 'Retry');
                   }
@@ -271,13 +320,15 @@ class MapViewPageState extends State<MapViewPage> {
                 });
               });
             } else {
-              _userDialog('Location Not able to get. Make sure device GPS is on. Please relogin and try again.', 'Ok').then((temp) {
-                setState(() {
-                  isLoading = false;
-                });
-              });
+              dialogFuture = _userDialog(value.message, 'Retry');
             }
           }
+        });
+      } else {
+        _userDialog('Location Not able to get. Make sure device GPS is on. Please relogin and try again.', 'Ok').then((temp) {
+          setState(() {
+            isLoading = false;
+          });
         });
       }
     } catch (e) {
@@ -286,7 +337,6 @@ class MapViewPageState extends State<MapViewPage> {
       });
     }
   }
-
   Future verify(String superid, String personid, String imagesBase64) async {
     final String _url = Constants.imgApiUrl + 'personVeification_base64';
     final punch = {
@@ -294,10 +344,17 @@ class MapViewPageState extends State<MapViewPage> {
       "personid": personid,
       "image_data_base64": imagesBase64,
     };
-    final response = await Dio().post(_url, data: punch);
-    print("url" + response.statusCode.toString());
-    print("response" + response.data.toString());
-    return response;
+    try {
+      print("verify Image  " + punch.toString());
+      final response = await Dio().post(_url, data: punch);
+      print("response " + response.data.toString());
+      return response;
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      print("errorkk   " + e.toString());
+    }
   }
 
   @override
@@ -413,13 +470,8 @@ class MapViewPageState extends State<MapViewPage> {
                             minWidth: 150.0,
                             child: new Text(punchtype, style: new TextStyle(fontSize: 15.0)),
                             onPressed: (() {
-                              onPunchClicked();
-                              Navigator.of(context).push(
-                                new MaterialPageRoute(
-                                  builder: (BuildContext context) => new AttendancePage(
-                                      username: widget.username, superid: widget.superid, regid: widget.regid, emailid: widget.emailid),
-                                ),
-                              );
+                              capturedCamImagesInPunch();
+
                             }),
                           ),
                         ],
